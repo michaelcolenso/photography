@@ -17,7 +17,7 @@ def copy_exif_data(source_img):
     except Exception:
         return None
 
-def generate_thumbnails(fulls_dir="images/fulls", thumbs_dir="images/thumbs", thumb_width=300):
+def generate_thumbnails(fulls_dir="images/fulls", thumbs_dir="images/thumbs", thumb_width=512):
     """Generate thumbnails for all images in fulls directory, preserving EXIF data."""
 
     fulls_path = Path(fulls_dir)
