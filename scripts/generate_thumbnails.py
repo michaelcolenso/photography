@@ -8,9 +8,17 @@ import os
 import sys
 from pathlib import Path
 from PIL import Image
+from PIL.ExifTags import TAGS
+
+def copy_exif_data(source_img):
+    """Extract EXIF data from source image."""
+    try:
+        return source_img.info.get('exif')
+    except Exception:
+        return None
 
 def generate_thumbnails(fulls_dir="images/fulls", thumbs_dir="images/thumbs", thumb_width=300):
-    """Generate thumbnails for all images in fulls directory."""
+    """Generate thumbnails for all images in fulls directory, preserving EXIF data."""
 
     fulls_path = Path(fulls_dir)
     thumbs_path = Path(thumbs_dir)
@@ -36,6 +44,9 @@ def generate_thumbnails(fulls_dir="images/fulls", thumbs_dir="images/thumbs", th
 
                 # Open and resize image
                 with Image.open(image_file) as img:
+                    # Preserve EXIF data
+                    exif_data = copy_exif_data(img)
+
                     # Convert RGBA to RGB if needed
                     if img.mode in ('RGBA', 'LA', 'P'):
                         background = Image.new('RGB', img.size, (255, 255, 255))
@@ -45,8 +56,12 @@ def generate_thumbnails(fulls_dir="images/fulls", thumbs_dir="images/thumbs", th
                     # Create thumbnail
                     img.thumbnail((thumb_width, thumb_width), Image.Resampling.LANCZOS)
 
-                    # Save thumbnail
-                    img.save(thumb_path, "JPEG", quality=85)
+                    # Save thumbnail with EXIF data if available
+                    save_kwargs = {"format": "JPEG", "quality": 85}
+                    if exif_data:
+                        save_kwargs["exif"] = exif_data
+
+                    img.save(thumb_path, **save_kwargs)
                     generated.append(image_file.name)
 
             except Exception as e:
