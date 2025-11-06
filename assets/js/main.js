@@ -313,6 +313,9 @@
                 if (info === "model") {
                     template += '<i class="fa fa-camera-retro" aria-hidden="true"></i> ' + exif["model"] + '&nbsp;&nbsp;';
                 }
+                if (info === "lens") {
+                    template += '<i class="fa fa-camera" aria-hidden="true"></i> ' + exif["lens"] + '&nbsp;&nbsp;';
+                }
                 if (info === "aperture") {
                     template += '<i class="fa fa-dot-circle-o" aria-hidden="true"></i> f/' + exif["aperture"] + '&nbsp;&nbsp;';
                 }
@@ -321,6 +324,21 @@
                 }
                 if (info === "iso") {
                     template += '<i class="fa fa-info-circle" aria-hidden="true"></i> ' + exif["iso"] + '&nbsp;&nbsp;';
+                }
+                if (info === "focal_length") {
+                    template += '<i class="fa fa-expand" aria-hidden="true"></i> ' + exif["focal_length"] + 'mm&nbsp;&nbsp;';
+                }
+                if (info === "exposure_compensation") {
+                    template += '<i class="fa fa-adjust" aria-hidden="true"></i> ' + exif["exposure_compensation"] + '&nbsp;&nbsp;';
+                }
+                if (info === "flash") {
+                    template += '<i class="fa fa-bolt" aria-hidden="true"></i> ' + exif["flash"] + '&nbsp;&nbsp;';
+                }
+                if (info === "white_balance") {
+                    template += '<i class="fa fa-balance-scale" aria-hidden="true"></i> ' + exif["white_balance"] + '&nbsp;&nbsp;';
+                }
+                if (info === "metering_mode") {
+                    template += '<i class="fa fa-bar-chart" aria-hidden="true"></i> ' + exif["metering_mode"] + '&nbsp;&nbsp;';
                 }
             }
             return template;
@@ -331,6 +349,10 @@
 
             if (EXIF.getTag(img, "Model") !== undefined) {
                 exifData.model = EXIF.getTag(img, "Model");
+            }
+
+            if (EXIF.getTag(img, "LensModel") !== undefined) {
+                exifData.lens = EXIF.getTag(img, "LensModel");
             }
 
             if (EXIF.getTag(img, "FNumber") !== undefined) {
@@ -344,7 +366,59 @@
             if (EXIF.getTag(img, "ISOSpeedRatings") !== undefined) {
                 exifData.iso = EXIF.getTag(img, "ISOSpeedRatings");
             }
+
+            if (EXIF.getTag(img, "FocalLength") !== undefined) {
+                exifData.focal_length = EXIF.getTag(img, "FocalLength");
+            }
+
+            if (EXIF.getTag(img, "ExposureBiasValue") !== undefined) {
+                exifData.exposure_compensation = EXIF.getTag(img, "ExposureBiasValue");
+            }
+
+            if (EXIF.getTag(img, "Flash") !== undefined) {
+                exifData.flash = formatFlashValue(EXIF.getTag(img, "Flash"));
+            }
+
+            if (EXIF.getTag(img, "WhiteBalance") !== undefined) {
+                exifData.white_balance = formatWhiteBalance(EXIF.getTag(img, "WhiteBalance"));
+            }
+
+            if (EXIF.getTag(img, "MeteringMode") !== undefined) {
+                exifData.metering_mode = formatMeteringMode(EXIF.getTag(img, "MeteringMode"));
+            }
+
             return exifData;
+        }
+
+        function formatFlashValue(flash) {
+            var flashValues = {
+                0: 'No Flash',
+                1: 'Flash Fired',
+                5: 'Flash Fired, Return light not detected',
+                7: 'Flash Fired, Return light detected'
+            };
+            return flashValues[flash] || flash;
+        }
+
+        function formatWhiteBalance(wb) {
+            var wbValues = {
+                0: 'Auto',
+                1: 'Manual'
+            };
+            return wbValues[wb] || wb;
+        }
+
+        function formatMeteringMode(metering) {
+            var meteringValues = {
+                0: 'Unknown',
+                1: 'Average',
+                2: 'Center-weighted',
+                3: 'Spot',
+                4: 'Multi-spot',
+                5: 'Pattern',
+                6: 'Partial'
+            };
+            return meteringValues[metering] || metering;
         }
 
     });
