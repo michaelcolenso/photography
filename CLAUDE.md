@@ -48,7 +48,7 @@ Photography Site
 
 ### Image Flow
 1. User places full-size images in `images/fulls/`
-2. Pre-commit git hook runs `scripts/generate_thumbnails.py`
+2. Thumbnails are generated via `scripts/generate_thumbnails.py` (manually or via optional pre-commit hook)
 3. Script generates 512px thumbnails in `images/thumbs/` with EXIF data preserved
 4. Jekyll builds site and iterates `site.static_files` to list images
 5. Browser loads thumbnail as background-image, hides actual img tag
@@ -71,26 +71,51 @@ These mappings are in the `fetchExifData()` and `getExifDataMarkup()` functions 
 # Install Ruby gems (Jekyll)
 bundle install
 
-# Start Jekyll development server
-eval "$(rbenv init -)" && bundle exec jekyll serve --host 0.0.0.0 --port 4000
-
+# Start Jekyll development server (basic)
+bundle exec jekyll serve
 # Site runs at http://localhost:4000/
+
+# Or with rbenv and custom host/port:
+eval "$(rbenv init -)" && bundle exec jekyll serve --host 0.0.0.0 --port 4000
 ```
 
 ### Adding Images
+
+**Recommended workflow (Python script):**
 ```bash
 # 1. Copy full-size JPEG to images/fulls/
 cp image.jpg images/fulls/
 
-# 2. Commit (pre-commit hook auto-generates thumbnail)
-git add images/fulls/image.jpg
-git commit -m "Add new image"
-
-# 3. Or manually generate all thumbnails
+# 2. Manually generate thumbnails
 python3 scripts/generate_thumbnails.py
+
+# 3. Commit both full and thumbnail
+git add images/fulls/image.jpg images/thumbs/image.jpg
+git commit -m "Add new image"
 ```
 
+**Optional: Set up automatic thumbnail generation on commit**
+
+Note: The repository doesn't include a pre-commit hook by default. To add one:
+
+```bash
+cat > .git/hooks/pre-commit << 'EOF'
+#!/bin/bash
+python3 scripts/generate_thumbnails.py
+if [ $? -ne 0 ]; then
+    echo "Thumbnail generation failed"
+    exit 1
+fi
+git add images/thumbs/*
+EOF
+chmod +x .git/hooks/pre-commit
+```
+
+Once installed, thumbnails will be auto-generated on each commit.
+
 ### Image Processing
+
+**Current approach (Python/Pillow - Recommended):**
 ```bash
 # Ensure Python dependencies installed
 pip3 install Pillow
@@ -98,6 +123,23 @@ pip3 install Pillow
 # Manually regenerate all thumbnails (512px with EXIF preserved)
 python3 scripts/generate_thumbnails.py
 ```
+
+**Legacy approach (Gulp/npm - Deprecated):**
+
+The repository still contains `package.json` and `gulpfile.js` from an older Node.js-based workflow. This is no longer the recommended approach but is documented here for reference:
+
+```bash
+# Install Node dependencies (legacy)
+npm install
+
+# Place images in images/ root directory, then run:
+gulp
+
+# This resizes to 1024px (fulls) and 512px (thumbs)
+# Note: EXIF preservation with Gulp is less reliable than Python script
+```
+
+**Use the Python script approach unless you have a specific need for the Gulp workflow.**
 
 ### Configuration
 - **Site metadata:** `_config.yml` (title, author, social links, image directories)
@@ -131,7 +173,7 @@ In `assets/js/main.js`:
 
 3. **Image format:** EXIF is only readable from JPEG files. PNG, GIF, WebP may be processed but won't display EXIF data.
 
-4. **Git hook:** The pre-commit hook at `.git/hooks/pre-commit` automatically runs `scripts/generate_thumbnails.py` before each commit.
+4. **Git hook (optional):** A pre-commit hook can be manually installed to automatically run `scripts/generate_thumbnails.py` before each commit. See "Adding Images" section for setup instructions.
 
 ## When Modifying Code
 
