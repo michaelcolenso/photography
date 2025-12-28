@@ -7,7 +7,7 @@ layout: default
 
     <!-- Header -->
     <header id="header">
-        <h1><a href="index.html"><strong>Photography</strong> by Ram Patra</a></h1>
+        <h1><a href="{{ site.baseurl }}/"><strong>{{ site.title }}</strong></a></h1>
         <nav>
             <ul>
                 <li><a href="#footer" class="icon fa-info-circle">About</a></li>
@@ -17,16 +17,27 @@ layout: default
 
     <!-- Main -->
     <div id="main">
+        {% assign image_count = 0 %}
         {% for image in site.static_files %}
-            {% if image.path contains 'fulls' %}
+            {% if image.path contains site.image_fulls_loc %}
+                {% assign image_count = image_count | plus: 1 %}
                 <article class="thumb">
                     <a href="{{ site.baseurl }}{{ site.image_fulls_loc }}/{{ image.name }}" class="image">
-                    <img src="{{ site.baseurl }}{{ site.image_thumbs_loc }}/{{ image.name }}" alt="" data-name="{{ image.name }}"/></a>
-                    <!--<h2></h2>
-                    <p></p>-->
+                    <img src="{{ site.baseurl }}{{ site.image_thumbs_loc }}/{{ image.name }}"
+                         alt="{{ image.basename | replace: '-', ' ' | replace: '_', ' ' | capitalize }}"
+                         loading="lazy"
+                         decoding="async"
+                         data-name="{{ image.name }}"/></a>
                 </article>
             {% endif %}
         {% endfor %}
+
+        {% if image_count == 0 %}
+            <div class="no-images" style="padding: 4em; text-align: center; color: #a0a0a1;">
+                <p><i class="fa fa-camera fa-3x" style="margin-bottom: 1em;"></i></p>
+                <p>No images found in {{ site.image_fulls_loc }}. Add images to get started!</p>
+            </div>
+        {% endif %}
     </div>
 
     <!-- Footer -->
@@ -34,9 +45,11 @@ layout: default
         <div class="inner split">
             <div>
                 <section>
-                    <h2>Hey there, my name is Ram</h2>
+                    <h2>About {{ site.author }}</h2>
                     <p>{{ site.bio }}</p>
+                    {% if site.publicise %}
                     <p>{{ site.publicise }}</p>
+                    {% endif %}
                 </section>
                 <section>
                     <h2>Follow me on ...</h2>
@@ -68,23 +81,50 @@ layout: default
             <div>
                 <section>
                     <h2>Get in touch</h2>
-                    <form method="post" action="#">
+                    {% if site.formspree_email %}
+                    <form method="POST" action="https://formspree.io/f/{{ site.formspree_email }}">
                         <div class="field half first">
-                            <input type="text" name="name" id="name" placeholder="Name"/>
+                            <input type="text" name="name" id="name" placeholder="Name" required/>
                         </div>
                         <div class="field half">
-                            <input type="text" name="email" id="email" placeholder="Email"/>
+                            <input type="email" name="_replyto" id="email" placeholder="Email" required/>
                         </div>
                         <div class="field">
-                            <textarea name="message" id="message" rows="4" placeholder="Message"></textarea>
+                            <textarea name="message" id="message" rows="4" placeholder="Message" required></textarea>
                         </div>
                         <ul class="actions">
                             <li><input type="submit" value="Send" class="special"/></li>
                             <li><input type="reset" value="Reset"/></li>
                         </ul>
                     </form>
+                    {% else %}
+                    <p>Connect with me via social media using the links above.</p>
+                    {% endif %}
                 </section>
             </div>
         </div>
     </footer>
 </div>
+
+<!-- Structured Data for SEO -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ImageGallery",
+  "name": "{{ site.title }}",
+  "author": {
+    "@type": "Person",
+    "name": "{{ site.author }}"{% if site.social_urls.instagram %},
+    "sameAs": "{{ site.social_urls.instagram }}"{% endif %}
+  },
+  "url": "{{ site.url }}{{ site.baseurl }}",
+  "description": "{{ site.bio }}",
+  "image": [
+    {% for image in site.static_files %}
+      {% if image.path contains site.image_fulls_loc %}
+        "{{ site.url }}{{ site.baseurl }}{{ site.image_fulls_loc }}/{{ image.name }}"{% unless forloop.last %},{% endunless %}
+      {% endif %}
+    {% endfor %}
+  ]
+}
+</script>

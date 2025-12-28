@@ -1,16 +1,48 @@
-# Base configs
+# Site Configuration
+title: "Photography by M. Colenso"
+description: "Photography portfolio showcasing travel, landscape, and street photography with camera settings"
+author: "M. Colenso"
 baseurl: ""
 url: "https://michaelcolenso.github.io/photography"
+timezone: America/Los_Angeles
+
+# Image Paths
 image_fulls_loc: "/images/fulls"
 image_thumbs_loc: "/images/thumbs"
+
+# About
+bio: "Photographer and visual storyteller capturing moments around the world."
+publicise: "All images shot on location with available light."
+
+# Analytics & Forms
 google_analytics: ""
+formspree_email: ""
+
+# Build Settings
+markdown: kramdown
+permalink: pretty
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - package.json
+  - package-lock.json
+  - gulpfile.js
+  - scripts/
+  - .git/
+  - .github/
+  - README.md
+  - CLAUDE.md
+  - LICENSE
+  - .editorconfig
+
+# Performance
+sass:
+  style: compressed
+  sourcemap: never
 
 # UI configs
-title: "Photography by M. Colenso"
 subtitle: "ITAP"
-author: "M. Colenso"
-bio: "enthusiast"
-publicise: "you're a nice lady"
 web_design: "MC"
 social_urls:
   facebook: "https://www.facebook.com/thatbigfluffydog"

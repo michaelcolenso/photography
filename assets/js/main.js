@@ -62,9 +62,6 @@
         // Scroll back to top.
         $window.scrollTop(0);
 
-        // Fix: Placeholder polyfill.
-        $('form').placeholder();
-
         // Panels.
         var $panels = $('.panel');
 
@@ -253,10 +250,20 @@
                         $image.trigger('click');
                     });
 
-            // EXIF data					
-            EXIF.getData($image_img[0], function () {
-                exifDatas[$image_img.data('name')] = getExifDataMarkup(this);
-            });
+            // EXIF data
+            if (typeof EXIF !== 'undefined') {
+                try {
+                    EXIF.getData($image_img[0], function () {
+                        try {
+                            exifDatas[$image_img.data('name')] = getExifDataMarkup(this);
+                        } catch (error) {
+                            console.warn('Failed to extract EXIF from ' + $image_img.data('name') + ':', error);
+                        }
+                    });
+                } catch (error) {
+                    console.warn('EXIF.getData failed for ' + $image_img.data('name') + ':', error);
+                }
+            }
 
         });
 
@@ -266,13 +273,21 @@
             caption: function ($a) {
                 var $image_img = $a.children('img');
                 var data = exifDatas[$image_img.data('name')];
-                if (data === undefined) {
-                    // EXIF data					
-                    EXIF.getData($image_img[0], function () {
-                        data = exifDatas[$image_img.data('name')] = getExifDataMarkup(this);
-                    });
+                if (data === undefined && typeof EXIF !== 'undefined') {
+                    // EXIF data
+                    try {
+                        EXIF.getData($image_img[0], function () {
+                            try {
+                                data = exifDatas[$image_img.data('name')] = getExifDataMarkup(this);
+                            } catch (error) {
+                                console.warn('Failed to extract EXIF from ' + $image_img.data('name') + ':', error);
+                            }
+                        });
+                    } catch (error) {
+                        console.warn('EXIF.getData failed for ' + $image_img.data('name') + ':', error);
+                    }
                 }
-                return data !== undefined ? '<p>' + data + '</p>' : ' ';
+                return data !== undefined ? '<p>' + data + '</p>' : '';
             },
             fadeSpeed: 300,
             onPopupClose: function () {
@@ -306,85 +321,96 @@
                 $main[0]._poptrox.windowMargin = 0;
             });
 
+        function escapeHtml(unsafe) {
+            if (unsafe === undefined || unsafe === null) {
+                return '';
+            }
+            return String(unsafe)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
         function getExifDataMarkup(img) {
             var exif = fetchExifData(img);
-            var template = '';
-            for (var info in exif) {
-                if (info === "model") {
-                    template += '<i class="fa fa-camera-retro" aria-hidden="true"></i> ' + exif["model"] + '&nbsp;&nbsp;';
-                }
-                if (info === "lens") {
-                    template += '<i class="fa fa-camera" aria-hidden="true"></i> ' + exif["lens"] + '&nbsp;&nbsp;';
-                }
-                if (info === "aperture") {
-                    template += '<i class="fa fa-dot-circle-o" aria-hidden="true"></i> f/' + exif["aperture"] + '&nbsp;&nbsp;';
-                }
-                if (info === "shutter_speed") {
-                    template += '<i class="fa fa-clock-o" aria-hidden="true"></i> ' + exif["shutter_speed"] + '&nbsp;&nbsp;';
-                }
-                if (info === "iso") {
-                    template += '<i class="fa fa-info-circle" aria-hidden="true"></i> ' + exif["iso"] + '&nbsp;&nbsp;';
-                }
-                if (info === "focal_length") {
-                    template += '<i class="fa fa-expand" aria-hidden="true"></i> ' + exif["focal_length"] + 'mm&nbsp;&nbsp;';
-                }
-                if (info === "exposure_compensation") {
-                    template += '<i class="fa fa-adjust" aria-hidden="true"></i> ' + exif["exposure_compensation"] + '&nbsp;&nbsp;';
-                }
-                if (info === "flash") {
-                    template += '<i class="fa fa-bolt" aria-hidden="true"></i> ' + exif["flash"] + '&nbsp;&nbsp;';
-                }
-                if (info === "white_balance") {
-                    template += '<i class="fa fa-balance-scale" aria-hidden="true"></i> ' + exif["white_balance"] + '&nbsp;&nbsp;';
-                }
-                if (info === "metering_mode") {
-                    template += '<i class="fa fa-bar-chart" aria-hidden="true"></i> ' + exif["metering_mode"] + '&nbsp;&nbsp;';
+
+            // Define display order and formatting rules
+            var exifFields = [
+                { key: 'model', icon: 'camera-retro', format: function(v) { return v; } },
+                { key: 'lens', icon: 'camera', format: function(v) { return v; } },
+                { key: 'aperture', icon: 'dot-circle-o', format: function(v) { return 'f/' + v; } },
+                { key: 'shutter_speed', icon: 'clock-o', format: function(v) { return v; } },
+                { key: 'iso', icon: 'info-circle', format: function(v) { return v; } },
+                { key: 'focal_length', icon: 'expand', format: function(v) { return v + 'mm'; } },
+                { key: 'exposure_compensation', icon: 'adjust', format: function(v) { return v; } },
+                { key: 'flash', icon: 'bolt', format: function(v) { return v; } },
+                { key: 'white_balance', icon: 'balance-scale', format: function(v) { return v; } },
+                { key: 'metering_mode', icon: 'bar-chart', format: function(v) { return v; } }
+            ];
+
+            var parts = [];
+            for (var i = 0; i < exifFields.length; i++) {
+                var field = exifFields[i];
+                if (exif[field.key] !== undefined) {
+                    var value = escapeHtml(field.format(exif[field.key]));
+                    parts.push('<i class="fa fa-' + field.icon + '" aria-hidden="true"></i> ' + value);
                 }
             }
-            return template;
+
+            return parts.join('&nbsp;&nbsp;');
         }
 
         function fetchExifData(img) {
             var exifData = {};
 
-            if (EXIF.getTag(img, "Model") !== undefined) {
-                exifData.model = EXIF.getTag(img, "Model");
+            if (typeof EXIF === 'undefined') {
+                return exifData;
             }
 
-            if (EXIF.getTag(img, "LensModel") !== undefined) {
-                exifData.lens = EXIF.getTag(img, "LensModel");
-            }
+            try {
+                if (EXIF.getTag(img, "Model") !== undefined) {
+                    exifData.model = EXIF.getTag(img, "Model");
+                }
 
-            if (EXIF.getTag(img, "FNumber") !== undefined) {
-                exifData.aperture = EXIF.getTag(img, "FNumber");
-            }
+                if (EXIF.getTag(img, "LensModel") !== undefined) {
+                    exifData.lens = EXIF.getTag(img, "LensModel");
+                }
 
-            if (EXIF.getTag(img, "ExposureTime") !== undefined) {
-                exifData.shutter_speed = EXIF.getTag(img, "ExposureTime");
-            }
+                if (EXIF.getTag(img, "FNumber") !== undefined) {
+                    exifData.aperture = EXIF.getTag(img, "FNumber");
+                }
 
-            if (EXIF.getTag(img, "ISOSpeedRatings") !== undefined) {
-                exifData.iso = EXIF.getTag(img, "ISOSpeedRatings");
-            }
+                if (EXIF.getTag(img, "ExposureTime") !== undefined) {
+                    exifData.shutter_speed = EXIF.getTag(img, "ExposureTime");
+                }
 
-            if (EXIF.getTag(img, "FocalLength") !== undefined) {
-                exifData.focal_length = EXIF.getTag(img, "FocalLength");
-            }
+                if (EXIF.getTag(img, "ISOSpeedRatings") !== undefined) {
+                    exifData.iso = EXIF.getTag(img, "ISOSpeedRatings");
+                }
 
-            if (EXIF.getTag(img, "ExposureBiasValue") !== undefined) {
-                exifData.exposure_compensation = EXIF.getTag(img, "ExposureBiasValue");
-            }
+                if (EXIF.getTag(img, "FocalLength") !== undefined) {
+                    exifData.focal_length = EXIF.getTag(img, "FocalLength");
+                }
 
-            if (EXIF.getTag(img, "Flash") !== undefined) {
-                exifData.flash = formatFlashValue(EXIF.getTag(img, "Flash"));
-            }
+                if (EXIF.getTag(img, "ExposureBiasValue") !== undefined) {
+                    exifData.exposure_compensation = EXIF.getTag(img, "ExposureBiasValue");
+                }
 
-            if (EXIF.getTag(img, "WhiteBalance") !== undefined) {
-                exifData.white_balance = formatWhiteBalance(EXIF.getTag(img, "WhiteBalance"));
-            }
+                if (EXIF.getTag(img, "Flash") !== undefined) {
+                    exifData.flash = formatFlashValue(EXIF.getTag(img, "Flash"));
+                }
 
-            if (EXIF.getTag(img, "MeteringMode") !== undefined) {
-                exifData.metering_mode = formatMeteringMode(EXIF.getTag(img, "MeteringMode"));
+                if (EXIF.getTag(img, "WhiteBalance") !== undefined) {
+                    exifData.white_balance = formatWhiteBalance(EXIF.getTag(img, "WhiteBalance"));
+                }
+
+                if (EXIF.getTag(img, "MeteringMode") !== undefined) {
+                    exifData.metering_mode = formatMeteringMode(EXIF.getTag(img, "MeteringMode"));
+                }
+            } catch (error) {
+                console.warn('Error fetching EXIF tags:', error);
             }
 
             return exifData;
